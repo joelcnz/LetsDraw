@@ -1,23 +1,5 @@
-//#rename
-//#work here
 /+
-Welcome to Lets Push!
-
-Road map:
-
-New idea have a toggle with pushing and not pushing
-
-Help:
-Except for recording the screen or so, don't switch programs while this one is running.
-
-       Command + Q - to quit program
-   Use cursor keys - to move the pusher around
-       Command + S - to save a snapshot
-                 X - Add (or takeaway if one underneath) a pusher
-                 Z - Toggle control of one or all pushers
-			     A - Toggle all terminal or just last line
-				 P - Rotate switch between: noPush, weakPush and strongPush
-
+Welcome to Lets Draw!
 +/
 
 module main;
@@ -28,9 +10,9 @@ import base;
 
 int main(string[] args) {
 	scope(exit)
-		"\n#\n#\n#\n#\n###\n".writeln;
+		"\n###\n#  #\n#  #\n#  #\n###\n".writeln;
     g_window = new RenderWindow(VideoMode(SCREEN_W, SCREEN_H),
-							  "Welcome to Lets-Push! Press [System] + [Q] to quit"d);
+							  "Welcome to Lets-Draw! Press [System] + [Q] to quit"d);
 
 	g_font = new Font;
 	g_font.loadFromFile("DejaVuSans.ttf");
@@ -50,25 +32,13 @@ int main(string[] args) {
 	scope(exit)
 		g_setup.shutdown;
 
-	g_historyMan.add("Welcome to Lets-Push");
+	g_historyMan.add("Welcome to Lets-Draw");
 
 	JSound saveSound;
 	import std.path;
 	saveSound = new JSound(buildPath("Audio", "snapshot.wav"));
 
 	g_window.setFramerateLimit(60);
-
-	g_board.setup;
-
-	bool moveAllCursors;
-
-	auto userMode = UserMode.mainMode;
-	bool justSwitchedT;
-
-	ConvergeMan convergeMan;
-	convergeMan.load;
-	//bool converge = true;
-	bool converge;
 
 	import std.datetime.stopwatch: StopWatch;
 	StopWatch timer;
@@ -96,8 +66,6 @@ int main(string[] args) {
 		bool jXProcess(in dstring input) {
 			void displayHelp() {
 				jx.addToHistory("t - return to main editing");
-				jx.addToHistory("clearCursors");
-				jx.addToHistory("converge - free tiles");
 				jx.addToHistory("cat - list project files");
 				jx.addToHistory("save <file name>");
 				jx.addToHistory("load (@onlyPushers) <file name>");
@@ -199,12 +167,12 @@ int main(string[] args) {
 				break;
 				case "save":
 					Save s;
-					if (s.save(fileName, moveAllCursors, userMode))
+					if (s.save(fileName))
 						jx.addToHistory("Saved: ", fileName);
 				break;
 				case "load":
 					Load l;
-					if (l.load(fileName, moveAllCursors, userMode, types))
+					if (l.load(fileName, types))
 						jx.addToHistory("Loaded: ", fileName, " ", types);
 				break;
 				//#rename
@@ -244,120 +212,23 @@ int main(string[] args) {
 					}
 					jx.addToHistory(fileName, " - deleted");
 				break;
-				case "clearCursors":
-					g_pushers = [g_pushers[0]];
-					jx.addToHistory("Cursors cleared..");
-				break;
 				case "t":
-					userMode = UserMode.mainMode;
+					g_userMode = UserMode.mainMode;
 					g_historyMan.add("Terminal off..");
-				break;
-				case "converge":
-					converge = ! converge;
-					if (converge) {
-						convergeMan.load;
-						jx.addToHistory("converge on");
-					} else
-						jx.addToHistory("converge off");
 				break;
 			}
 
 			return true;
 		}
 
-		final switch(userMode) with(UserMode) {
+		final switch(g_userMode) with(UserMode) {
 			case mainMode:
 				if (g_keys[Keyboard.Key.T].keyInput) {
-					userMode = UserMode.terminalMode;
+					g_userMode = UserMode.terminalMode;
 					g_historyMan.add("Terminal on..");
-					justSwitchedT = true;
-				}
-
-				if ((Keyboard.isKeyPressed(Keyboard.Key.LSystem) || Keyboard.isKeyPressed(Keyboard.Key.RSystem)) &&
-					g_keys[Keyboard.Key.S].keyInput) {
-
-					auto renderTexture = new RenderTexture;
-
-					renderTexture.create(SCREEN_W, SCREEN_H);
-
-					renderTexture.clear;
-
-					g_board.draw(renderTexture);
-
-					foreach(pusher; g_pushers)
-						pusher.draw(renderTexture);
-
-					renderTexture.display;
-
-					auto capturedTexture2 = renderTexture.getTexture;
-					auto toSave = capturedTexture2.copyToImage;
-
-					int id;
-					string fileName;
-					do {
-						fileName = buildPath("SnapShots", format("snap%02d.png", id));
-						id += 1;
-					} while(fileName.exists);
-					if (!toSave.saveToFile(fileName)) {
-						"SnapShot not saved!".gh;
-					} else {
-						saveSound.playSnd;
-					}
-				}
-
-				if (g_keys[Keyboard.Key.P].keyInput) {
-					with(PushType) {
-						if (g_pushType == noPush) {
-							g_pushType = strongPush;
-							g_historyMan.add("Strong push..");
-						} else {
-							if (g_pushType == weakPush) {
-								g_pushType = noPush;
-								convergeMan.load;
-								g_historyMan.add("No push..");
-							} else {
-								g_pushType = weakPush;
-								g_historyMan.add("Weak push..");
-							}
-						}
-					}
-				}
-
-				if (g_keys[Keyboard.Key.Z].keyInput) {
-					moveAllCursors = ! moveAllCursors;
-					g_historyMan.add(moveAllCursors ? "Move all pushers" : "Move just main pusher");
 				}
 				if (g_keys[Keyboard.Key.A].keyInput) {
 					g_historyMan._all = ! g_historyMan._all;
-				}
-
-				if (! moveAllCursors && g_keys[Keyboard.Key.X].keyInput) {
-					bool wipe;
-					foreach(i, pusher; g_pushers[1 .. $])
-						if (g_pushers[0]._pos.X == pusher._pos.X &&
-							g_pushers[0]._pos.Y == pusher._pos.Y) {
-							import std.algorithm;
-
-							g_pushers = g_pushers.remove(i + 1); // make allowances for [1 ..] in the for each statement
-							wipe = true;
-							g_historyMan.add("pusher removed");
-							break;
-						}
-					if (! wipe) {
-						g_pushers ~= new Pusher(g_pushers[0]._pos);
-						g_historyMan.add("#" ~ (cast(int)g_pushers.length - 1).to!dstring ~ " pusher added");
-					}
-				}
-
-				if (! moveAllCursors) {
-					g_pushers[0].getKeyInfo;
-					g_pushers[0].process;
-					g_keyInfo._key = Keyboard.Key.KeyCount;
-				} else {
-					g_pushers[0].getKeyInfo;
-					foreach(ref pusher; g_pushers)
-						pusher.process;
-					g_keyInfo._key = Keyboard.Key.KeyCount;
 				}
 			break;
 			case terminalMode:
@@ -370,25 +241,16 @@ int main(string[] args) {
 			break;
 		} // switch
 
-		if (converge == true && g_pushType == PushType.noPush && userMode != UserMode.terminalMode)
-			if (timer.peek.total!"msecs" > 70) {
-				convergeMan.process;
-				timer.reset;
-			}
-
 		g_window.clear;
 
-		if (userMode == UserMode.mainMode) {
-			g_board.draw;
-
-			foreach(pusher; g_pushers)
-				pusher.draw;
+		final switch(g_userMode) with (UserMode) {
+			case mainMode:
+				g_historyMan.draw;
+			break;
+			case terminalMode:
+				jx.draw;
+			break;
 		}
-
-		if (userMode == UserMode.mainMode)
-			g_historyMan.draw;
-		else
-			jx.draw;
 
     	g_window.display;
     }
@@ -405,10 +267,10 @@ auto cat(bool display) {
 	import std.array: array, replicate;
 
 	if (display)
-		jx.addToHistory("File list from 'saves':");
+		jx.addToHistory("File list from 'Saves':");
 	int i;
 	string[] files;
-	foreach(DirEntry file; dirEntries("saves", "*.{bin}", SpanMode.shallow).array.sort!"a.name < b.name") {
+	foreach(DirEntry file; dirEntries("Saves", "*.{bin}", SpanMode.shallow).array.sort!"a.name < b.name") {
 		files ~= file.name.idup;
 		if (display) {
 			auto name = file.name.find(dirSeparator)[1 .. $].until(".").array;
