@@ -9,7 +9,7 @@ import jec, dini.dini, jmisc;
 
 import std.stdio, std.conv, std.range, std.string, std.path, std.file;
 
-import historyman;
+import historyman, layer, layerman, pointer;
 import io;
 
 Setup g_setup;
@@ -22,6 +22,7 @@ UserMode g_userMode;
 immutable SCREEN_W = 800, SCREEN_H = 600;
 
 HistoryMan g_historyMan;
+LayerMan g_layerMan;
 
 static this() {
 }

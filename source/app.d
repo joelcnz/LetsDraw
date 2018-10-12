@@ -1,8 +1,11 @@
+// see layer.d void draw
 /+
 Welcome to Lets Draw!
 +/
 
 module main;
+
+//version = Test;
 
 import std.math;
 
@@ -14,18 +17,18 @@ int main(string[] args) {
     g_window = new RenderWindow(VideoMode(SCREEN_W, SCREEN_H),
 							  "Welcome to Lets-Draw! Press [System] + [Q] to quit"d);
 
-	g_font = new Font;
-	g_font.loadFromFile("DejaVuSans.ttf");
-	if (! g_font) {
-		import std.stdio;
-		writeln("Font not load");
-		return -1;
-	}
-
 	if (g_setup.setup != 0) {
 		gh("Setup error, aborting...");
 		g_window.close;
 
+		return -1;
+	}
+
+	g_font = new Font;
+	g_font.loadFromFile("Fonts/DejaVuSans.ttf");
+	if (! g_font) {
+		import std.stdio;
+		writeln("Font not load");
 		return -1;
 	}
 
@@ -45,6 +48,11 @@ int main(string[] args) {
 	timer.start;
 
 	string[] files = cat(/* display: */ false);
+
+	g_layerMan.add;
+
+	Pointer pntr;
+	pntr.setup;
 
     while(g_window.isOpen())
     {
@@ -230,6 +238,9 @@ int main(string[] args) {
 				if (g_keys[Keyboard.Key.A].keyInput) {
 					g_historyMan._all = ! g_historyMan._all;
 				}
+				if (Keyboard.isKeyPressed(Keyboard.Key.V)) {
+					pntr.drawDot;
+				}
 			break;
 			case terminalMode:
 				jx.process; //#input
@@ -241,10 +252,21 @@ int main(string[] args) {
 			break;
 		} // switch
 
+	version(Test) {
+		static tpos = Pointi(0,15);
+		layerMan._layers[0].drawDot(tpos, Color.Red);
+		tpos += Pointi(1, 0);
+		if (tpos.X == SCREEN_W)
+			tpos = Pointi(0, tpos.Y + 1);
+	}
+
+		pntr.updatePos;
+
 		g_window.clear;
 
 		final switch(g_userMode) with (UserMode) {
 			case mainMode:
+				g_layerMan.draw;
 				g_historyMan.draw;
 			break;
 			case terminalMode:
